@@ -2,426 +2,520 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <title>WEZZY | Voice Chat v2</title>
+    <title>WEZZY | Voice Fixed</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #36393f; color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        
-        /* ЕКРАН ВХОДУ */
-        #login-screen {
+        :root {
+            --bg-dark: #1e1f22;
+            --bg-panel: #2b2d31;
+            --bg-input: #383a40;
+            --accent: #5865f2;
+            --green: #23a559;
+            --red: #da373c;
+            --text-main: #f2f3f5;
+            --text-dim: #b5bac1;
+        }
+
+        body { 
+            margin: 0; font-family: 'Inter', sans-serif; 
+            background-color: var(--bg-dark); color: var(--text-main); 
+            display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+            background-image: url('https://cdn.discordapp.com/attachments/100000000000000000/100000000000000000/background.png'); 
+            background-size: cover; background-position: center;
+            -webkit-user-select: none; user-select: none;
+        }
+
+        /* --- ЕКРАНИ --- */
+        #auth-screen, #connect-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #2f3136; display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; z-index: 10;
-        }
-        .card { background: #202225; padding: 30px; border-radius: 10px; width: 320px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 10px; }
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 5px; color: white; font-weight: bold; cursor: pointer; font-size: 16px; transition: 0.2s; }
-        .btn:hover { opacity: 0.9; }
-        .btn-create { background-color: #5865f2; }
-        .btn-join { background-color: #3ba55c; }
-        .btn-back { background-color: #ed4245; }
-        
-        input, select { width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #202225; background: #40444b; color: white; box-sizing: border-box; outline: none; }
-        label { font-size: 12px; color: #b9bbbe; font-weight: bold; margin-bottom: -5px; display: block;}
-
-        /* ВІЗУАЛІЗАТОР МІКРОФОНУ (ТЕСТ) */
-        .mic-test-container {
-            background: #2f3136; height: 10px; border-radius: 5px; overflow: hidden; margin-top: 5px;
-        }
-        .mic-bar {
-            height: 100%; width: 0%; background: #3ba55c; transition: width 0.1s;
+            background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(8px);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 20;
         }
 
-        /* ГОЛОВНИЙ ЕКРАН */
-        #app-screen { display: none; flex: 1; flex-direction: row; }
-        
-        .sidebar { width: 260px; background: #2f3136; padding: 20px; display: flex; flex-direction: column; }
-        .server-code-box { background: #202225; padding: 10px; border-radius: 5px; margin-bottom: 20px; cursor: pointer; text-align: center; }
-        .code-display { color: #faa61a; font-weight: bold; font-family: monospace; font-size: 18px; word-break: break-all; }
-        .status { font-size: 12px; color: gray; margin-bottom: 10px; }
-        
-        .user-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; }
-        .user-item { display: flex; align-items: center; padding: 8px; background: #36393f; border-radius: 5px; border: 2px solid transparent; transition: border-color 0.1s; }
-        
-        /* ЕФЕКТ "ГОВОРИТЬ" */
-        .user-item.speaking {
-            border-color: #3ba55c; /* Зелена рамка */
-            background-color: #2f3136;
+        .card {
+            background: #313338; padding: 32px; border-radius: 8px; width: 340px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3); text-align: center;
         }
+
+        .avatar-upload {
+            width: 110px; height: 110px; border-radius: 50%; background: var(--accent); margin: 0 auto 20px;
+            display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative;
+            overflow: hidden; border: 4px solid var(--bg-panel); transition: 0.2s;
+        }
+        .avatar-upload:hover { opacity: 0.8; transform: scale(1.05); }
+        .avatar-upload img { width: 100%; height: 100%; object-fit: cover; }
+        .avatar-upload span { position: absolute; font-size: 13px; font-weight: bold; text-shadow: 0 1px 2px black; }
+
+        input {
+            width: 100%; padding: 12px; background: #1e1f22; border: none;
+            border-radius: 4px; color: white; margin-bottom: 15px; box-sizing: border-box; outline: none; font-size: 16px;
+        }
+
+        .btn {
+            width: 100%; padding: 12px; background: var(--accent); color: white; border: none;
+            border-radius: 4px; font-weight: 600; cursor: pointer; font-size: 15px; margin-top: 5px; transition: 0.2s;
+        }
+        .btn:hover { background: #4752c4; }
+        .btn-sec { background: #4e5058; } .btn-sec:hover { background: #6d6f78; }
+        .link { color: #00a8fc; cursor: pointer; font-size: 14px; margin-top: 15px; display: block; }
+
+        /* --- ГОЛОВНИЙ --- */
+        #app-screen { display: none; flex: 1; flex-direction: row; background: #313338; }
+        .sidebar { width: 300px; background: var(--bg-panel); display: flex; flex-direction: column; }
+        .sidebar-head { padding: 20px; font-weight: 800; font-size: 18px; border-bottom: 1px solid #1e1f22; display: flex; justify-content: space-between; align-items: center; }
+        .admin-badge { background: #fee75c; color: #313338; font-size: 10px; padding: 2px 6px; border-radius: 4px; display: none; }
         
-        .avatar { width: 32px; height: 32px; background: #5865f2; border-radius: 50%; margin-right: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; }
+        .logout-btn { background: transparent; border: 1px solid #da373c; color: #da373c; padding: 4px 8px; font-size: 10px; border-radius: 4px; cursor: pointer; }
+        .logout-btn:hover { background: #da373c; color: white; }
+
+        .sidebar-body { padding: 10px; flex: 1; overflow-y: auto; }
+        .label { font-size: 12px; font-weight: 700; color: #949BA4; text-transform: uppercase; margin: 16px 10px 8px; display: block; }
+
+        .code-box { background: var(--bg-dark); padding: 12px; border-radius: 6px; margin: 0 10px; cursor: pointer; text-align: center; border: 1px dashed var(--text-dim); }
+        .code-text { color: var(--accent); font-weight: 700; font-family: monospace; font-size: 15px; }
+
+        /* ЮЗЕР В СПИСКУ */
+        .user-item { display: flex; align-items: center; padding: 10px 12px; border-radius: 6px; margin-bottom: 4px; cursor: context-menu; transition: background 0.1s; }
+        .user-item:hover { background: rgba(78, 80, 88, 0.4); }
         
-        /* ЧАТ */
-        .chat-area { flex: 1; display: flex; flex-direction: column; background: #36393f; }
-        .messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-        .msg { background: #40444b; padding: 10px; border-radius: 8px; max-width: 80%; word-break: break-word; }
-        .msg.me { align-self: flex-end; background: #5865f2; }
-        .msg-sender { font-size: 10px; color: #b9bbbe; margin-bottom: 2px; font-weight: bold; }
-        .msg-input-area { padding: 20px; background: #2f3136; }
+        .avatar-wrapper { position: relative; margin-right: 14px; width: 42px; height: 42px; flex-shrink: 0; }
+        .avatar-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: var(--accent); transition: box-shadow 0.1s; }
+        
+        /* ЗЕЛЕНЕ СВІТЛО ПРИ РОЗМОВІ */
+        .user-item.speaking .avatar-img { 
+            box-shadow: 0 0 0 3px var(--green), 0 0 15px var(--green); /* Яскрава підсвітка */
+        }
+
+        .user-name { font-weight: 600; font-size: 16px; color: #f2f3f5; }
+        .status-icons { position: absolute; bottom: -2px; right: -2px; display: flex; background: #2b2d31; border-radius: 50%; }
+        .status-icon { width: 16px; height: 16px; background: var(--red); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: 2px solid #2b2d31; }
+        .status-icon svg { width: 10px; height: 10px; fill: currentColor; }
+
+        /* --- КОНТЕКСТНЕ МЕНЮ --- */
+        #context-menu { position: absolute; display: none; background: #111214; border-radius: 4px; width: 200px; padding: 6px; box-shadow: 0 8px 16px rgba(0,0,0,0.5); z-index: 9999; }
+        .ctx-item { padding: 8px 12px; border-radius: 2px; color: #b5bac1; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+        .ctx-item:hover { background: #5865f2; color: white; }
+        .ctx-item.danger { color: #da373c; } .ctx-item.danger:hover { background: #da373c; color: white; }
+        .ctx-sep { height: 1px; background: #2b2d31; margin: 4px 0; }
+
+        /* --- ПАНЕЛЬ КЕРУВАННЯ --- */
+        .controls { background: #232428; padding: 0 12px; height: 60px; display: flex; align-items: center; flex-shrink: 0; }
+        .my-info { display: flex; align-items: center; flex: 1; overflow: hidden; margin-right: 10px; cursor: pointer; padding: 6px; border-radius: 6px; }
+        .actions-container { display: flex; gap: 6px; }
+        
+        .icon-btn { background: transparent; border: none; cursor: pointer; color: var(--text-dim); width: 36px; height: 36px; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+        .icon-btn:hover { background: rgba(78, 80, 88, 0.6); color: #dbdee1; }
+        
+        .icon-btn.off { color: var(--red); position: relative; }
+        .icon-btn.off svg { fill: var(--red); }
+        .icon-btn.off::after { content: ''; position: absolute; width: 28px; height: 2px; background: var(--red); transform: rotate(-45deg); border: 2px solid #232428; }
+
+        /* ЗАБЛОКОВАНИЙ (LOCKED) */
+        .icon-btn.locked { opacity: 0.5; cursor: not-allowed; background: rgba(0,0,0,0.3) !important; pointer-events: none; }
+        .icon-btn.locked svg { fill: #999; }
+        .icon-btn.locked::before { content: '🔒'; position: absolute; font-size: 10px; top: -2px; right: -2px; z-index: 10; }
+
+        #voice-join-btn { background: transparent; color: var(--green); border: 1px solid var(--green); padding: 6px 16px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px; white-space: nowrap; transition: 0.2s; }
+        #voice-join-btn:hover { background: var(--green); color: white; }
+
+        /* --- ЧАТ --- */
+        .chat { flex: 1; display: flex; flex-direction: column; background: #313338; position: relative; }
+        .messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+        .msg { display: flex; gap: 16px; margin-top: 6px; } .msg:hover { background: rgba(2, 2, 2, 0.03); }
+        .msg-avatar { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+        .msg-name { font-weight: 600; color: white; font-size: 16px; display: flex; align-items: center; gap: 5px; }
+        .admin-crown { color: #fee75c; font-size: 14px; }
+        .msg-content { color: #dbdee1; font-size: 15px; line-height: 1.4; white-space: pre-wrap; word-wrap: break-word; }
+        .chat-gif { max-width: 300px; border-radius: 8px; margin-top: 5px; }
+        .input-area { padding: 0 20px 24px; background: #313338; position: relative; }
+        .input-wrapper { background: #383a40; border-radius: 8px; display: flex; align-items: center; padding: 0 16px; gap: 10px; }
+        .chat-input { flex: 1; background: transparent; border: none; padding: 14px 0; color: white; outline: none; height: 48px; }
+        
+        .popup { position: absolute; bottom: 80px; right: 20px; width: 340px; height: 400px; background: #2b2d31; border-radius: 8px; display: none; flex-wrap: wrap; overflow-y: auto; padding: 12px; z-index: 100; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        .emoji-item { font-size: 28px; cursor: pointer; padding: 6px; }
+        .gif-item { width: 48%; height: 90px; margin: 1%; cursor: pointer; border-radius: 4px; object-fit: cover; }
     </style>
 </head>
-<body>
+<body onclick="resumeAudio(); hideCtx();">
 
-    <div id="login-screen">
-        <h2 style="color: #5865f2; margin: 0 0 15px 0;">WEZZY VOICE</h2>
-        
-        <div class="card" id="step-settings">
-            <label>Твій Нікнейм</label>
-            <input type="text" id="username" placeholder="Введи ім'я...">
-
-            <label>Обери мікрофон</label>
-            <select id="micSelect" onchange="startMicTest()"></select>
-            
-            <label>Перевірка звуку</label>
-            <div class="mic-test-container">
-                <div class="mic-bar" id="micTestBar"></div>
+    <div id="auth-screen">
+        <div class="card">
+            <h2 id="auth-title" style="color:white; margin-bottom:20px;">Вхід</h2>
+            <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="processAvatar(this)">
+            <div class="avatar-upload" onclick="document.getElementById('avatar-input').click()">
+                <img id="avatar-preview" src="" style="display:none;">
+                <span id="avatar-text">Аватар</span>
             </div>
-
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <button class="btn btn-create" onclick="goToMode('create')">Створити</button>
-                <button class="btn btn-join" onclick="goToMode('join')">Ввійти</button>
-            </div>
+            <input type="text" id="login-user" placeholder="Нікнейм">
+            <input type="password" id="login-pass" placeholder="Пароль">
+            <button class="btn" onclick="handleAuth()">Вхід</button>
+            <div class="link" onclick="toggleAuth()" id="switch-btn">Створити акаунт</div>
         </div>
+    </div>
 
-        <div class="card" id="step-join" style="display:none;">
-            <label>Код сервера</label>
-            <input type="text" id="roomCodeInput" placeholder="Встав код від друга">
-            <button class="btn btn-join" onclick="joinRoom()">ПІДКЛЮЧИТИСЯ</button>
-            <button class="btn btn-back" onclick="goBack()">НАЗАД</button>
+    <div id="connect-screen" style="display:none;">
+        <div class="card">
+            <h2 style="color:white; margin-bottom:20px;">Меню</h2>
+            <button class="btn" style="background: var(--green);" onclick="initApp('create')">Створити Сервер</button>
+            <button class="btn btn-sec" onclick="document.getElementById('join-input-group').style.display='block'">Приєднатися</button>
+            <div id="join-input-group" style="display:none; margin-top:15px;">
+                <input type="text" id="room-code" placeholder="Код сервера...">
+                <button class="btn" onclick="initApp('join')">Підключитися</button>
+            </div>
         </div>
     </div>
 
     <div id="app-screen">
-        <div class="sidebar">
-            <label>КОД ЗАПРОШЕННЯ (Клік щоб скопіювати)</label>
-            <div class="server-code-box" onclick="copyCode()">
-                <div class="code-display" id="myIdDisplay">...</div>
-            </div>
-            
-            <div class="status" id="statusText">Очікування...</div>
-            <label>УЧАСНИКИ</label>
-            <div class="user-list" id="userList"></div>
-            
-            <button class="btn btn-back" style="margin-top: auto;" onclick="location.reload()">Відключитися</button>
+        <div id="context-menu">
+            <div class="ctx-item" onclick="adminAction('force-mute')">🔒 Заблокувати мікрофон</div>
+            <div class="ctx-item" onclick="adminAction('force-unmute')">🔓 Розблокувати мікрофон</div>
+            <div class="ctx-sep"></div>
+            <div class="ctx-item danger" onclick="adminAction('kick')">🚪 Кікнути</div>
+            <div class="ctx-item danger" onclick="adminAction('ban')">🚫 Заблокувати (Бан)</div>
         </div>
 
-        <div class="chat-area">
-            <div class="messages" id="messages">
-                <div style="text-align: center; color: gray; margin-top: 20px;">Чат кімнати</div>
+        <div class="sidebar">
+            <div class="sidebar-head">
+                WEZZY
+                <div style="display:flex; gap:5px; align-items:center;">
+                    <div id="admin-indicator" class="admin-badge">ADMIN</div>
+                    <button class="logout-btn" onclick="logout()">ВИЙТИ</button>
+                </div>
             </div>
-            <div class="msg-input-area">
-                <input type="text" id="chatInput" placeholder="Повідомлення..." onkeypress="if(event.key==='Enter') sendChat()">
+            <div class="sidebar-body">
+                <span class="label">Запрошення</span>
+                <div class="code-box" onclick="copyCode()"><div class="code-text" id="my-id">...</div></div>
+                <span class="label">Учасники</span>
+                <div id="user-list"></div>
+            </div>
+            
+            <div class="controls">
+                <div class="my-info">
+                    <div class="avatar-wrapper" style="width:40px; height:40px;">
+                        <img id="myAvatarMini" class="avatar-img" src="">
+                        <div class="status-icons" id="my-status-icons"></div>
+                    </div>
+                    <div style="font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="my-name-ui">User</div>
+                </div>
+
+                <div class="actions-container">
+                    <button id="voice-join-btn" onclick="joinVoice()">Join Voice</button>
+                    <div id="voice-actions" style="display:none; align-items: center; gap: 4px;">
+                        <button class="icon-btn" id="btn-mic" onclick="toggleMic()" title="Mic">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+                        </button>
+                        <button class="icon-btn" id="btn-deaf" onclick="toggleDeaf()" title="Deaf">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9v7c0 1.1.9 2 2 2h4v-8H5v-1c0-3.87 3.13-7 7-7s7 3.13 7 7v1h-4v8h4c1.1 0 2-.9 2-2v-7c0-4.97-4.03-9-9-9z"/></svg>
+                        </button>
+                        <button class="icon-btn" onclick="leaveVoice()" style="color: #da373c;" title="Disconnect">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M18.4 4L12 10.4L5.6 4L4 5.6L10.4 12L4 18.4L5.6 20L12 13.6L18.4 20L20 18.4L13.6 12L20 5.6L18.4 4Z"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat">
+            <div class="messages" id="msgs">
+                <div style="margin-top:auto; padding-bottom:10px;">
+                    <h2 style="color:white; margin:0;"># загальний</h2>
+                </div>
+            </div>
+            <div id="pop-emoji" class="popup"></div>
+            <div id="pop-gif" class="popup"></div>
+            <div class="input-area">
+                <div class="input-wrapper">
+                    <button class="icon-btn" onclick="togglePop('gif')" style="font-size:10px; width:30px;">GIF</button>
+                    <input type="text" class="chat-input" id="chat-in" placeholder="Написати повідомлення..." onkeypress="if(event.key==='Enter') sendMsg()">
+                    <button class="icon-btn" onclick="togglePop('emoji')">😊</button>
+                </div>
             </div>
         </div>
     </div>
-
     <div id="audio-container"></div>
 
     <script>
+        // --- 0. СИСТЕМА ЗВУКУ (ВИПРАВЛЕНА) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function resumeAudio() { if (audioCtx.state === 'suspended') audioCtx.resume(); }
+
+        function playTone(freq) {
+            resumeAudio();
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+            osc.frequency.value = freq; gain.gain.value = 0.05;
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+        }
+        const snd = { click: ()=>playTone(600), msg: ()=>playTone(800), join: ()=>playTone(400) };
+
         // --- ЗМІННІ ---
-        let peer;
-        let myStream;
-        let myName;
-        let myPeerId;
-        let connections = []; 
-        let audioContext;
-        let analyser;
-        let dataArray;
-        let micTestInterval;
+        let peer, myStream, myName, myAvatar=null, conns=[];
+        let isReg=false, muted=true, deaf=true, isInVoice=false;
+        let isAdmin=false, serverMuted=false;
+        let selectedUserForAdmin=null;
 
-        // --- 1. НАЛАШТУВАННЯ МІКРОФОНУ (ПРИ ЗАПУСКУ) ---
-        
-        async function initDevices() {
-            // Просимо доступ, щоб отримати список пристроїв
-            try {
-                await navigator.mediaDevices.getUserMedia({ audio: true });
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                const select = document.getElementById('micSelect');
-                select.innerHTML = '';
-                
-                devices.forEach(device => {
-                    if (device.kind === 'audioinput') {
-                        const option = document.createElement('option');
-                        option.value = device.deviceId;
-                        option.text = device.label || `Мікрофон ${select.length + 1}`;
-                        select.appendChild(option);
+        // --- 1. АВТО-ВХІД ---
+        window.onload = function() {
+            const lastUser = localStorage.getItem('wezzy_last_user');
+            if(lastUser) {
+                const pass = localStorage.getItem('wezzy_v5_' + lastUser);
+                const ava = localStorage.getItem('wezzy_v5_' + lastUser + '_ava');
+                if(pass) {
+                    document.getElementById('login-user').value = lastUser;
+                    document.getElementById('login-pass').value = pass;
+                    if(ava) {
+                        myAvatar = ava;
+                        document.getElementById('avatar-preview').src = myAvatar;
+                        document.getElementById('avatar-preview').style.display = 'block';
+                        document.getElementById('avatar-text').style.display = 'none';
                     }
-                });
-                startMicTest(); // Запуск тесту
-            } catch (err) {
-                alert("Будь ласка, дозвольте доступ до мікрофону для роботи сайту!");
+                }
             }
         }
-        
-        // Запуск ініціалізації при завантаженні сторінки
-        window.onload = initDevices;
 
-        // --- 2. ТЕСТ МІКРОФОНУ (ВІЗУАЛІЗАЦІЯ) ---
-        
-        async function startMicTest() {
-            if(micTestInterval) clearInterval(micTestInterval);
-            
-            const deviceId = document.getElementById('micSelect').value;
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    audio: { deviceId: deviceId ? { exact: deviceId } : undefined } 
-                });
-                
-                // Налаштування аналізу звуку
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const analyserNode = audioCtx.createAnalyser();
-                const source = audioCtx.createMediaStreamSource(stream);
-                source.connect(analyserNode);
-                analyserNode.fftSize = 256;
-                const bufferLength = analyserNode.frequencyBinCount;
-                const dataArr = new Uint8Array(bufferLength);
-
-                // Анімація смужки
-                const bar = document.getElementById('micTestBar');
-                
-                micTestInterval = setInterval(() => {
-                    analyserNode.getByteFrequencyData(dataArr);
-                    let sum = 0;
-                    for(let i = 0; i < bufferLength; i++) sum += dataArr[i];
-                    let average = sum / bufferLength;
-                    // Збільшуємо чутливість для візуалізації
-                    let percent = Math.min(100, average * 2.5); 
-                    bar.style.width = percent + "%";
-                }, 100);
-
-            } catch (e) { console.log("Mic test error", e); }
+        // --- 2. ЛОГІКА ---
+        function processAvatar(input) {
+            const file=input.files[0]; if(!file)return;
+            const reader=new FileReader();
+            reader.onload=function(e){
+                const img=new Image(); img.src=e.target.result;
+                img.onload=function(){
+                    const c=document.createElement('canvas'); const ctx=c.getContext('2d');
+                    c.width=150; c.height=150; ctx.drawImage(img,0,0,150,150);
+                    myAvatar=c.toDataURL('image/jpeg',0.85);
+                    document.getElementById('avatar-preview').src=myAvatar;
+                    document.getElementById('avatar-preview').style.display='block';
+                    document.getElementById('avatar-text').style.display='none';
+                }
+            }
+            reader.readAsDataURL(file);
         }
 
-        // --- 3. НАВІГАЦІЯ ---
-        
-        function goToMode(mode) {
-            const name = document.getElementById('username').value;
-            if(!name) return alert("Введи ім'я!");
-            myName = name;
-
-            if (mode === 'create') {
-                startApp(null);
+        function toggleAuth() { snd.click(); isReg=!isReg; document.getElementById('auth-title').innerText=isReg?"Реєстрація":"Вхід"; document.getElementById('switch-btn').innerText=isReg?"Вже є акаунт":"Створити акаунт"; }
+        function handleAuth() {
+            snd.click();
+            const u=document.getElementById('login-user').value; const p=document.getElementById('login-pass').value;
+            if(!u||!p) return alert("Заповни поля!");
+            const key='wezzy_v5_'+u; const saved=localStorage.getItem(key);
+            if(isReg) {
+                if(saved) return alert("Зайнято!");
+                localStorage.setItem(key, p); if(myAvatar) localStorage.setItem(key+'_ava', myAvatar);
+                alert("Успіх!"); toggleAuth();
             } else {
-                document.getElementById('step-settings').style.display = 'none';
-                document.getElementById('step-join').style.display = 'block';
+                if(saved===p) {
+                    myName=u; if(!myAvatar) myAvatar=localStorage.getItem(key+'_ava') || "https://cdn.discordapp.com/embed/avatars/0.png";
+                    localStorage.setItem('wezzy_last_user', myName);
+                    document.getElementById('auth-screen').style.display='none';
+                    document.getElementById('connect-screen').style.display='flex';
+                    setupUI();
+                } else alert("Невірний пароль!");
             }
         }
+        function logout() { localStorage.removeItem('wezzy_last_user'); location.reload(); }
 
-        function goBack() {
-            document.getElementById('step-join').style.display = 'none';
-            document.getElementById('step-settings').style.display = 'flex';
+        function initApp(mode) {
+            snd.click(); isAdmin=(mode==='create');
+            if(isAdmin) document.getElementById('admin-indicator').style.display='block';
+            navigator.mediaDevices.getUserMedia({audio:true}).then(s=>{
+                myStream=s; myStream.getAudioTracks().forEach(t=>t.enabled=false);
+                document.getElementById('connect-screen').style.display='none';
+                document.getElementById('app-screen').style.display='flex';
+                startPeer(mode==='join'?document.getElementById('room-code').value:null);
+                addUserToUI('me', myName, myAvatar);
+            }).catch(e=>alert("Error: "+e));
         }
 
-        function joinRoom() {
-            const code = document.getElementById('roomCodeInput').value;
-            if(!code) return alert("Введи код!");
-            startApp(code);
-        }
-
-        // --- 4. ЗАПУСК ДОДАТКУ ---
-
-        function startApp(targetId) {
-            // Зупиняємо тест мікрофону
-            if(micTestInterval) clearInterval(micTestInterval);
-
-            // Отримуємо фінальний стрім з обраного пристрою
-            const deviceId = document.getElementById('micSelect').value;
-            
-            navigator.mediaDevices.getUserMedia({ 
-                audio: { deviceId: deviceId ? { exact: deviceId } : undefined } 
-            }).then(stream => {
-                myStream = stream;
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('app-screen').style.display = 'flex';
-                
-                setupPeer(targetId); // Запуск PeerJS
-                
-                // Додаємо себе в інтерфейс
-                addParticipantToUI('local-user', myName, true);
-                // Запуск аналізу свого голосу для індикації
-                monitorAudioActivity(myStream, 'local-user');
-
-            }).catch(err => {
-                alert("Помилка доступу до мікрофону: " + err);
+        function startPeer(target) {
+            peer=new Peer();
+            peer.on('open', id=>{ document.getElementById('my-id').innerText=id; if(target) connectTo(target); });
+            peer.on('call', c=>{ c.answer(myStream); c.on('stream', s=>playAudio(s,c.peer)); c.on('close',()=>removeUser(c.peer)); });
+            peer.on('connection', c=>{
+                conns.push(c);
+                c.on('data', d=>handleData(d,c));
+                c.on('close', ()=>removeUser(c.peer));
             });
+            window.onbeforeunload=()=>peer.destroy();
         }
 
-        // --- 5. ЛОГІКА PEERJS (ЗВ'ЯЗОК) ---
+        function connectTo(id) {
+            const call=peer.call(id,myStream); call.on('stream', s=>playAudio(s,id)); call.on('close', ()=>removeUser(id));
+            const c=peer.connect(id);
+            c.on('open', ()=>c.send({type:'join', name:myName, avatar:myAvatar, isAdmin:isAdmin, status:{mic:muted, deaf:deaf}}));
+            conns.push(c);
+            c.on('data', d=>handleData(d,c));
+        }
 
-        function setupPeer(targetId) {
-            document.getElementById('statusText').innerText = "З'єднання з сервером...";
-            
-            peer = new Peer();
-
-            peer.on('open', (id) => {
-                myPeerId = id;
-                document.getElementById('myIdDisplay').innerText = id;
-                document.getElementById('statusText').innerText = "Онлайн (Голосовий активний)";
-                
-                if (targetId) {
-                    connectToPeer(targetId);
+        function handleData(d, c) {
+            // ADMIN COMMANDS
+            if(d.type==='admin-cmd') {
+                if(d.cmd==='force-mute') { 
+                    serverMuted=true; muted=true; 
+                    if(isInVoice && myStream) myStream.getAudioTracks()[0].enabled=false; 
+                    document.getElementById('btn-mic').classList.add('off','locked');
+                    broadcastStatus();
+                    alert("Ваш мікрофон заблоковано Адміністратором.");
                 }
-            });
-
-            // Вхідний дзвінок (Голос)
-            peer.on('call', (call) => {
-                call.answer(myStream);
-                
-                // Очікуємо метадані (ім'я) через DataConnection, 
-                // але для простоти створимо тимчасовий ID
-                const remoteUserId = call.peer; 
-
-                call.on('stream', (remoteStream) => {
-                    playAudio(remoteStream, remoteUserId);
-                });
-            });
-
-            // Вхідні дані (Чат + Імена)
-            peer.on('connection', (conn) => {
-                handleDataConnection(conn);
-            });
-
-            peer.on('error', err => alert("Помилка з'єднання: " + err.type));
-        }
-
-        function connectToPeer(id) {
-            // 1. Дзвінок
-            const call = peer.call(id, myStream);
-            call.on('stream', (remoteStream) => {
-                playAudio(remoteStream, id);
-            });
-
-            // 2. Дані (щоб передати ім'я)
-            const conn = peer.connect(id);
-            conn.on('open', () => {
-                conn.send({ type: 'join', name: myName });
-            });
-            handleDataConnection(conn);
-        }
-
-        // --- 6. ОБРОБКА ДАНИХ ТА ЧАТУ ---
-
-        function handleDataConnection(conn) {
-            connections.push(conn);
-
-            conn.on('data', (data) => {
-                // Новий користувач представився
-                if(data.type === 'join') {
-                    addParticipantToUI(conn.peer, data.name, false);
-                    addMessage("System", `${data.name} приєднався`, false);
-                    
-                    // Відправляємо йому своє ім'я у відповідь
-                    conn.send({ type: 'welcome', name: myName });
-                    
-                    // Якщо ми Адмін, треба передати йому список інших (спрощено: просто всі обмінюються)
+                if(d.cmd==='force-unmute') {
+                    serverMuted=false;
+                    // Розблоковуємо кнопку
+                    document.getElementById('btn-mic').classList.remove('locked');
+                    // Автоматично НЕ вмикаємо мік (людина має сама натиснути)
+                    alert("Адміністратор розблокував мікрофон.");
                 }
-                
-                if(data.type === 'welcome') {
-                    addParticipantToUI(conn.peer, data.name, false);
-                }
+                if(d.cmd==='kick') { alert("Вас вигнано."); location.reload(); }
+            }
 
-                if(data.type === 'chat') {
-                    addMessage(data.sender, data.text, false);
-                }
-            });
+            if(d.type==='join') { snd.join(); addUserToUI(c.peer,d.name,d.avatar,d.isAdmin); updateUserStatus(c.peer,d.status); c.send({type:'welcome',name:myName,avatar:myAvatar,isAdmin:isAdmin,status:{mic:muted,deaf:deaf}}); }
+            if(d.type==='welcome') { addUserToUI(c.peer,d.name,d.avatar,d.isAdmin); updateUserStatus(c.peer,d.status); }
+            if(d.type==='chat') addMsg(d,false);
+            if(d.type==='status') updateUserStatus(c.peer,d.status);
         }
 
-        function sendChat() {
-            const input = document.getElementById('chatInput');
-            const text = input.value;
-            if(!text) return;
-
-            addMessage("Я", text, true);
-            connections.forEach(conn => conn.send({ type: 'chat', sender: myName, text: text }));
-            input.value = "";
+        // --- АНАЛІЗ ЗВУКУ (ВИПРАВЛЕНО) ---
+        function playAudio(s, id) {
+            if(document.getElementById('aud-'+id))return; 
+            const a=document.createElement('audio'); a.id='aud-'+id; a.srcObject=s; a.autoplay=true; 
+            if(deaf)a.muted=true; 
+            document.getElementById('audio-container').appendChild(a); 
+            monitorAudio(s,id);
         }
 
-        // --- 7. АУДІО ТА ІНДИКАТОР ГУЧНОСТІ (СЕРЦЕ СИСТЕМИ) ---
-
-        function playAudio(stream, userId) {
-            // Перевірка чи вже є аудіо для цього юзера
-            if(document.getElementById(`audio-${userId}`)) return;
-
-            const audio = document.createElement('audio');
-            audio.id = `audio-${userId}`;
-            audio.srcObject = stream;
-            audio.autoplay = true;
-            document.getElementById('audio-container').appendChild(audio);
-
-            // Включаємо моніторинг для підсвітки рамки
-            monitorAudioActivity(stream, userId);
-        }
-
-        function monitorAudioActivity(stream, userId) {
-            // Створюємо окремий AudioContext для аналізу
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const analyser = audioCtx.createAnalyser();
+        function monitorAudio(stream, elementId) {
+            // Використовуємо глобальний audioCtx
             const source = audioCtx.createMediaStreamSource(stream);
+            const analyser = audioCtx.createAnalyser();
             source.connect(analyser);
-            
-            analyser.fftSize = 512;
-            const bufferLength = analyser.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
-            
-            const uiElement = document.getElementById(`user-div-${userId}`);
+            analyser.fftSize = 256;
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
 
-            function checkVolume() {
+            const checkVolume = () => {
+                const el = document.getElementById('u-' + elementId);
+                if (!el) return; // Якщо юзер вийшов
+
                 analyser.getByteFrequencyData(dataArray);
                 let sum = 0;
-                for(let i = 0; i < bufferLength; i++) sum += dataArray[i];
-                let average = sum / bufferLength;
+                for (let i = 0; i < dataArray.length; i++) {
+                    sum += dataArray[i];
+                }
+                let average = sum / dataArray.length;
 
-                // Поріг чутливості (можна змінити 10 на інше число)
-                if (average > 10) {
-                    if(uiElement) uiElement.classList.add('speaking');
+                // Поріг чутливості (5 - досить чутливо)
+                if (average > 5) {
+                    el.classList.add('speaking');
                 } else {
-                    if(uiElement) uiElement.classList.remove('speaking');
+                    el.classList.remove('speaking');
                 }
                 requestAnimationFrame(checkVolume);
-            }
+            };
             checkVolume();
         }
 
-        // --- 8. UI ФУНКЦІЇ ---
-
-        function addParticipantToUI(userId, name, isMe) {
-            // Якщо вже є - не додаємо
-            if(document.getElementById(`user-div-${userId}`)) return;
-
-            const list = document.getElementById('userList');
-            const div = document.createElement('div');
-            div.className = 'user-item';
-            div.id = `user-div-${userId}`; // ID для пошуку при аналізі звуку
+        // --- VOICE UI ---
+        function joinVoice() {
+            snd.click(); isInVoice=true; muted=false; deaf=false;
             
-            const initial = name.charAt(0).toUpperCase();
+            // Якщо заблоковано адміном - лишаємо мік вимкненим
+            if(serverMuted) { muted=true; document.getElementById('btn-mic').classList.add('off','locked'); }
+            else { 
+                document.getElementById('btn-mic').classList.remove('off'); 
+                if(myStream) myStream.getAudioTracks()[0].enabled=true; 
+            }
             
-            div.innerHTML = `
-                <div class="avatar">${initial}</div>
-                <div>
-                    <div style="font-weight:bold; font-size:14px;">${name} ${isMe ? '(Ти)' : ''}</div>
-                    <div style="font-size:11px; color:#b9bbbe;">Connected</div>
-                </div>
-            `;
-            list.appendChild(div);
+            document.querySelectorAll('audio').forEach(a=>a.muted=false);
+            document.getElementById('voice-join-btn').style.display='none';
+            document.getElementById('voice-actions').style.display='flex';
+            document.getElementById('btn-deaf').classList.remove('off');
+            
+            // Починаємо моніторинг свого голосу
+            if(myStream) monitorAudio(myStream, 'me');
+            
+            broadcastStatus();
         }
 
-        function addMessage(sender, text, isMe) {
-            const list = document.getElementById('messages');
-            const div = document.createElement('div');
-            div.className = `msg ${isMe ? 'me' : ''}`;
-            div.innerHTML = `
-                <div class="msg-sender">${sender}</div>
-                ${text}
-            `;
-            list.appendChild(div);
-            list.scrollTop = list.scrollHeight;
+        function leaveVoice() {
+            snd.click(); isInVoice=false; muted=true; deaf=true;
+            if(myStream) myStream.getAudioTracks()[0].enabled=false;
+            document.querySelectorAll('audio').forEach(a=>a.muted=true);
+            document.getElementById('voice-actions').style.display='none';
+            document.getElementById('voice-join-btn').style.display='block';
+            broadcastStatus();
         }
 
-        function copyCode() {
-            const code = document.getElementById('myIdDisplay').innerText;
-            navigator.clipboard.writeText(code);
-            alert("Код скопійовано!");
+        function toggleMic() {
+            snd.click(); if(!isInVoice) return;
+            if(serverMuted) return; // Якщо блок
+            if(deaf) return alert("Увімкніть звук, щоб говорити."); // Логіка: не можна говорити, якщо не чуєш
+            
+            muted=!muted;
+            myStream.getAudioTracks()[0].enabled=!muted;
+            document.getElementById('btn-mic').classList.toggle('off',muted);
+            broadcastStatus();
         }
+
+        function toggleDeaf() {
+            snd.click(); if(!isInVoice) return; deaf=!deaf;
+            document.querySelectorAll('audio').forEach(a=>a.muted=deaf);
+            document.getElementById('btn-deaf').classList.toggle('off',deaf);
+            
+            // Якщо глушимо звук -> глушимо і мік
+            if(deaf && !muted) { 
+                muted=true; 
+                myStream.getAudioTracks()[0].enabled=false; 
+                document.getElementById('btn-mic').classList.add('off'); 
+            }
+            broadcastStatus();
+        }
+
+        function broadcastStatus() { const s={mic:muted, deaf:deaf}; conns.forEach(c=>c.send({type:'status',status:s})); updateUserStatus('me',s); }
+
+        // --- UI HELPERS ---
+        function showCtx(e,id) {
+            if(!isAdmin || id==='me') return;
+            e.preventDefault(); selectedUserForAdmin=id;
+            const m=document.getElementById('context-menu');
+            m.style.display='block'; m.style.left=e.pageX+'px'; m.style.top=e.pageY+'px';
+        }
+        function hideCtx() { document.getElementById('context-menu').style.display='none'; }
+        function adminAction(act) {
+            const c=conns.find(x=>x.peer===selectedUserForAdmin);
+            if(c) c.send({type:'admin-cmd', cmd:act});
+            if(act==='kick') removeUser(selectedUserForAdmin);
+            hideCtx();
+        }
+
+        function addUserToUI(id,name,ava,isAdm) {
+            if(document.getElementById('u-'+id))return;
+            const l=document.getElementById('user-list');
+            const d=document.createElement('div'); d.className='user-item'; d.id='u-'+id;
+            d.oncontextmenu=(e)=>showCtx(e,id);
+            d.innerHTML=`<div class="avatar-wrapper"><img src="${ava}" class="avatar-img"><div class="status-icons"></div></div><div class="user-name">${name}${isAdm?' <span style="color:#fee75c">👑</span>':''}</div>`;
+            l.appendChild(d);
+        }
+        function updateUserStatus(id,s) {
+            if(!s)return; const el=document.getElementById(id==='me'?'my-status-icons':'u-'+id); if(!el)return;
+            const ic=id==='me'?el:el.querySelector('.status-icons'); ic.innerHTML='';
+            if(s.deaf) ic.innerHTML+='<div class="status-icon"><svg viewBox="0 0 24 24"><path d="M12 4V2.2C7.17 2.2 3.2 6.17 3.2 11v5.8c0 .66.54 1.2 1.2 1.2h1.2v-6H3.2v-.2c0-4.86 3.94-8.8 8.8-8.8s8.8 3.94 8.8 8.8v.2h-2.4v6h1.2c.66 0 1.2-.54 1.2-1.2V11c0-4.83-3.97-8.8-8.8-8.8zM4.4 12h-1.2v4.8h1.2V12zm16.4 0h-1.2v4.8h1.2V12z"/><path d="M0 0h24v24H0z" fill="none"/><path d="M1.2 22.8L2.4 24l20.4-20.4-1.2-1.2L1.2 22.8z"/></svg></div>';
+            if(s.mic||s.deaf) ic.innerHTML+='<div class="status-icon"><svg viewBox="0 0 24 24"><path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c.57-.08 1.12-.24 1.64-.46l1.77 1.77L17.73 20 4.27 3z"/></svg></div>';
+        }
+        function removeUser(id) { const el=document.getElementById('u-'+id); if(el)el.remove(); const au=document.getElementById('aud-'+id); if(au)au.remove(); }
+        function sendMsg() { const i=document.getElementById('chat-in'); if(!i.value)return; const m={type:'chat', sender:myName, avatar:myAvatar, text:i.value, isAdmin:isAdmin}; addMsg(m,true); conns.forEach(c=>c.send(m)); i.value=""; }
+        function sendGif(u) { const m={type:'chat', sender:myName, avatar:myAvatar, text:`<img src="${u}" class="chat-gif">`, isAdmin:isAdmin}; addMsg(m,true); conns.forEach(c=>c.send(m)); togglePop('none'); }
+        function addMsg(d, isMe) {
+            if(!isMe) snd.msg(); const b=document.getElementById('msgs'); const div=document.createElement('div'); div.className='msg';
+            div.innerHTML=`<img src="${d.avatar}" class="msg-avatar"><div><div class="msg-header"><span class="msg-name">${d.sender} ${d.isAdmin?'<span class="admin-crown">👑</span>':''}</span></div><div class="msg-content">${d.text}</div></div>`;
+            b.appendChild(div); b.scrollTop=b.scrollHeight;
+        }
+        function setupUI() {
+            document.getElementById('my-name-ui').innerText=myName; document.getElementById('myAvatarMini').src=myAvatar;
+            const ems = ['😀','😂','😍','😎','😭','😡','👍','👎','🔥','❤️','💀','🤡']; const gifs = ["https://media.tenor.com/x8v1oNUOmg4AAAAM/rickroll-roll.gif","https://media.tenor.com/nZo2dK_bXw4AAAAM/cat-typing.gif","https://media.tenor.com/kS92d7_N8FcAAAAM/ok-thumbs-up.gif"];
+            const eBox=document.getElementById('pop-emoji'); eBox.innerHTML=''; ems.forEach(e=>{let s=document.createElement('span'); s.className='emoji-item'; s.innerText=e; s.onclick=()=>{snd.click();document.getElementById('chat-in').value+=e;togglePop('none');}; eBox.appendChild(s);});
+            const gBox=document.getElementById('pop-gif'); gBox.innerHTML=''; gifs.forEach(u=>{let i=document.createElement('img'); i.className='gif-item'; i.src=u; i.onclick=()=>{snd.click();sendGif(u);}; gBox.appendChild(i);});
+        }
+        function togglePop(t) { snd.click(); document.getElementById('pop-emoji').style.display=t==='emoji'?'flex':'none'; document.getElementById('pop-gif').style.display=t==='gif'?'flex':'none'; }
+        function copyCode() { snd.click(); navigator.clipboard.writeText(document.getElementById('my-id').innerText); alert("Copied!"); }
     </script>
 </body>
 </html>
