@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>WEZZY | Discord Clone</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
+    <style>
+        /* --- ШРИФТИ ТА БАЗА --- */
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+        
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Roboto', "Helvetica Neue", Arial, sans-serif;
+            background-color: #36393f;
+            color: #dcddde;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* --- ЛІВА ПАНЕЛЬ СЕРВЕРІВ --- */
+        .server-list {
+            width: 72px;
+            background-color: #202225;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 12px;
+            overflow-y: scroll; 
+        }
+        .server-list::-webkit-scrollbar { display: none; } /* Приховати скрол */
+
+        .server-icon {
+            width: 48px;
+            height: 48px;
+            background-color: #36393f;
+            border-radius: 50%;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #dbdee1;
+            font-weight: bold;
+            font-size: 14px;
+            position: relative;
+        }
+        .server-icon:hover {
+            border-radius: 16px;
+            background-color: #5865f2;
+            color: white;
+        }
+        .server-icon.active {
+            border-radius: 16px;
+            background-color: #5865f2;
+            color: white;
+        }
+        .server-separator {
+            width: 32px;
+            height: 2px;
+            background-color: #36393f;
+            margin: 8px 0;
+        }
+
+        /* --- БІЧНА ПАНЕЛЬ (КАНАЛИ) --- */
+        .sidebar {
+            width: 240px;
+            background-color: #2f3136;
+            display: flex;
+            flex-direction: column;
+        }
+        .server-header {
+            height: 48px;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 1px 0 rgba(4,4,5,0.2);
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .server-header:hover { background-color: #34373c; }
+
+        .channels-container {
+            flex: 1;
+            padding-top: 16px;
+            overflow-y: auto;
+        }
+        
+        .category-label {
+            padding: 0 16px;
+            margin-bottom: 5px;
+            color: #8e9297;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+        }
+        .category-label:hover { color: #dcddde; }
+
+        /* Стиль каналу */
+        .channel-item {
+            margin: 1px 8px;
+            padding: 6px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #8e9297;
+            display: flex;
+            align-items: center;
+            font-size: 15px;
+            font-weight: 500;
+        }
+        .channel-item:hover {
+            background-color: #34373c;
+            color: #dcddde;
+        }
+        .channel-item.active {
+            background-color: #393c43;
+            color: white;
+        }
+        .channel-icon { margin-right: 6px; color: #72767d; width: 20px; text-align: center; }
+        .channel-item.voice-active { color: white; }
+
+        /* Список людей в голосовому */
+        .voice-user-list {
+            margin-left: 36px;
+            margin-bottom: 5px;
+        }
+        .voice-user {
+            display: flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-bottom: 2px;
+        }
+        .voice-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: #5865f2;
+            margin-right: 8px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            border: 2px solid #2f3136; /* ефект вирізу */
+        }
+        .voice-username {
+            font-size: 14px;
+            color: #b9bbbe;
+        }
+
+        /* --- ПАНЕЛЬ КОРИСТУВАЧА (ЗНИЗУ ЗЛІВА) --- */
+        .user-area {
+            background-color: #292b2f;
+            padding: 0 8px;
+            height: 52px;
+            display: flex;
+            align-items: center;
+        }
+        .user-avatar-wrap {
+            position: relative;
+            margin-right: 8px;
+            cursor: pointer;
+        }
+        .user-avatar-mini {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #5865f2;
+            display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;
+        }
+        .user-status-dot {
+            position: absolute; bottom: -2px; right: -2px;
+            width: 10px; height: 10px; border-radius: 50%; background-color: #3ba55c;
+            border: 2px solid #292b2f;
+        }
+        .user-info { flex: 1; font-size: 14px; font-weight: bold; color: white; white-space: nowrap; overflow: hidden; }
+        .user-tag { font-size: 12px; color: #b9bbbe; font-weight: normal; }
+        
+        .voice-connection-panel {
+            background-color: #292b2f;
+            border-bottom: 1px solid #202225;
+            padding: 8px;
+            display: none; /* Приховано за замовчуванням */
+        }
+        .connection-status { color: #3ba55c; font-size: 12px; font-weight: bold; margin-bottom: 2px; }
+        .channel-name-mini { color: #b9bbbe; font-size: 12px; }
+        .disconnect-btn {
+            margin-left: auto;
+            background: transparent; border: none; cursor: pointer; color: #b9bbbe;
+        }
+        .disconnect-btn:hover { color: #ed4245; }
+
+
+        /* --- ОСНОВНИЙ ЧАТ --- */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #36393f;
+        }
+        .chat-header {
+            height: 48px;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #26272d;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .hashtag { color: #72767d; margin-right: 8px; font-size: 24px; }
+        
+        .messages-wrapper {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            padding: 20px 0;
+        }
+        .messages-wrapper::-webkit-scrollbar { width: 8px; background-color: #2e3338; }
+        .messages-wrapper::-webkit-scrollbar-thumb { background-color: #202225; border-radius: 4px; }
+
+        .message {
+            display: flex;
+            padding: 6px 16px;
+            margin-top: 10px;
+        }
+        .message:hover { background-color: #32353b; }
+        
+        .msg-avatar {
+            width: 40px; height: 40px; border-radius: 50%; background-color: #5865f2;
+            flex-shrink: 0; margin-right: 16px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;
+        }
+        .msg-content h4 {
+            margin: 0; font-size: 16px; color: white; font-weight: 500;
+        }
+        .msg-timestamp { font-size: 12px; color: #72767d; margin-left: 6px; font-weight: 400; }
+        .msg-text { color: #dcddde; font-size: 15px; margin-top: 4px; word-break: break-word; line-height: 1.4; }
+
+        .input-area { padding: 0 16px 24px; background-color: #36393f; }
+        .input-box {
+            background-color: #40444b;
+            border-radius: 8px;
+            padding: 12px;
+            color: #dcddde;
+            display: flex; align-items: center;
+        }
+        .input-box input {
+            background: transparent; border: none; color: white; width: 100%; outline: none; font-size: 15px;
+        }
+
+        /* --- МОДАЛКА ВХОДУ --- */
+        #loginModal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: url('https://discord.com/assets/f9e79435b8ca81315573.svg') no-repeat center center fixed;
+            background-size: cover;
+            background-color: #5865f2;
+            display: flex; align-items: center; justify-content: center; z-index: 999;
+        }
+        .login-card {
+            background: #36393f; padding: 32px; border-radius: 5px; width: 400px;
+            box-shadow: 0 2px 10px 0 rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        .login-card h2 { color: white; margin-bottom: 8px; }
+        .login-card p { color: #b9bbbe; margin-bottom: 20px; }
+        .login-input {
+            width: 100%; padding: 10px; background: #202225; border: 1px solid #202225;
+            border-radius: 3px; color: white; height: 40px; margin-bottom: 20px;
+        }
+        .login-btn {
+            width: 100%; height: 44px; background-color: #5865f2; color: white;
+            border: none; border-radius: 3px; font-size: 16px; font-weight: 500; cursor: pointer;
+            transition: 0.2s;
+        }
+        .login-btn:hover { background-color: #4752c4; }
+
+    </style>
+</head>
+<body>
+
+    <div id="loginModal">
+        <div class="login-card">
+            <h2>Ласкаво просимо!</h2>
+            <p>Як тебе звати в цьому сервері?</p>
+            <input type="text" class="login-input" id="usernameInput" placeholder="Введи нікнейм">
+            <button class="login-btn" onclick="login()">Увійти</button>
+        </div>
+    </div>
+
+    <nav class="server-list">
+        <div class="server-icon" style="background-color: #36393f; color: #dcddde;">
+            <svg width="28" height="20" viewBox="0 0 28 20"><path fill="currentColor" d="M23.0212 1.67671C21.3107 0.879656 19.5079 0.318797 17.6584 0C17.4062 0.461742 17.1749 0.934541 16.9708 1.4184C15.0172 1.11817 12.9994 1.11817 11.0458 1.4184C10.8417 0.934541 10.6104 0.461742 10.3582 0C8.50875 0.318797 6.70591 0.879656 4.99541 1.67671C1.53036 6.8488 0.602693 11.9168 1.07166 16.9389C3.17937 18.5283 5.21147 19.4935 7.18663 20C7.66981 19.3364 8.1062 18.6369 8.4871 17.9156C7.75545 17.636 7.05436 17.3005 6.38604 16.9079C6.56455 16.7766 6.73855 16.638 6.90777 16.4927C11.1611 18.4988 15.8676 18.4988 20.0638 16.4927C20.2384 16.6432 20.4124 16.7818 20.5909 16.9079C19.9226 17.3005 19.2215 17.636 18.4899 17.9156C18.8761 18.6369 19.3125 19.3364 19.7957 20C21.7708 19.4935 23.8029 18.5283 25.9106 16.9389C26.4925 11.3789 25.0396 6.29428 23.0212 1.67671ZM9.68041 13.6383C8.45521 13.6383 7.44755 12.4922 7.44755 11.1082C7.44755 9.72421 8.43285 8.57813 9.68041 8.57813C10.9504 8.57813 11.958 9.72421 11.9357 11.1082C11.9357 12.4922 10.928 13.6383 9.68041 13.6383ZM17.3432 13.6383C16.118 13.6383 15.1103 12.4922 15.1103 11.1082C15.1103 9.72421 16.0956 8.57813 17.3432 8.57813C18.6132 8.57813 19.6208 9.72421 19.5985 11.1082C19.5985 12.4922 18.6132 13.6383 17.3432 13.6383Z"/></svg>
+        </div>
+        <div class="server-separator"></div>
+        <div class="server-icon active">UA</div>
+        <div class="server-icon">🎮</div>
+        <div class="server-icon">+</div>
+    </nav>
+
+    <div class="sidebar">
+        <div class="server-header">
+            Ukraine Community
+        </div>
+
+        <div class="channels-container">
+            <div class="category-label">Text Channels</div>
+            <div class="channel-item active">
+                <span class="channel-icon">#</span> головний
+            </div>
+            <div class="channel-item">
+                <span class="channel-icon">#</span> ігри
+            </div>
+            <div class="channel-item">
+                <span class="channel-icon">#</span> меми
+            </div>
+
+            <br>
+            
+            <div class="category-label">Voice Channels</div>
+            
+            <div class="channel-item" onclick="joinVoiceChannel(this, 'General')">
+                <span class="channel-icon">🔊</span> General
+            </div>
+            <div id="voice-participants-General" class="voice-user-list"></div>
+
+            <div class="channel-item" onclick="joinVoiceChannel(this, 'Music')">
+                <span class="channel-icon">🔊</span> Music
+            </div>
+             <div id="voice-participants-Music" class="voice-user-list"></div>
+        </div>
+
+        <div class="voice-connection-panel" id="voicePanel">
+            <div class="connection-status">Voice Connected</div>
+            <div class="channel-name-mini" id="currentVoiceName">General / Server</div>
+            <div style="display:flex; margin-top:5px;">
+                <button class="disconnect-btn" onclick="leaveVoice()" title="Відключитися">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21.018 4.394L19.604 2.98L18.19 4.394L19.604 5.808V4.394ZM11.99 0C5.364 0 0 5.378 0 12C0 18.622 5.364 24 11.99 24C18.63 24 24 18.622 24 12C24 11.412 23.958 10.836 23.882 10.272L21.734 12.42C21.906 12.248 22 12.062 22 12C22 17.514 17.514 22 12 22C6.486 22 2 17.514 2 12C2 6.486 6.486 2 12 2C13.434 2 14.802 2.292 16.074 2.822L17.582 1.314C15.892 0.466 14.004 0 11.99 0ZM8.5 13.5L4 18V13.5H8.5ZM21.5 13.5V18L17 13.5H21.5ZM12.912 8.674L15.326 6.26L8.674 12.912L6.26 15.326L12.912 8.674ZM15.326 17.74L8.674 11.088L6.26 8.674L15.326 17.74Z"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="user-area">
+            <div class="user-avatar-wrap">
+                <div class="user-avatar-mini" id="myAvatarMini">?</div>
+                <div class="user-status-dot"></div>
+            </div>
+            <div class="user-info">
+                <div id="myUsernameDisplay">User</div>
+                <div class="user-tag">#0001</div>
+            </div>
+        </div>
+    </div>
+
+    <main class="chat-area">
+        <div class="chat-header">
+            <span class="hashtag">#</span> головний
+        </div>
+
+        <div class="messages-wrapper" id="messagesList">
+            <div class="message">
+                <div class="msg-avatar">B</div>
+                <div class="msg-content">
+                    <h4>WEZZY Bot <span class="msg-timestamp">Сьогодні, 12:00</span></h4>
+                    <div class="msg-text">Ласкаво просимо на сервер! Тут можна писати та заходити у голосові канали.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="input-box">
+                <input type="text" id="messageInput" placeholder="Написати в #головний" onkeypress="handleKey(event)">
+            </div>
+        </div>
+    </main>
+
+    <div id="audioContainer"></div>
+
+    <script>
+        // --- ЗМІННІ ---
+        var gun = Gun(['https://gun-manhattan.herokuapp.com/gun']);
+        var chat = gun.get('wezzy-discord-clone-v3');
+        var myUser = "Anon";
+        var peer = null;
+        var myStream = null;
+        var currentCall = null;
+        var activeCalls = [];
+
+        // --- ЛОГІКА ВХОДУ ---
+        function login() {
+            var input = document.getElementById('usernameInput').value;
+            if(input.trim()) {
+                myUser = input;
+                document.getElementById('loginModal').style.display = 'none';
+                
+                // Оновлюємо інтерфейс
+                document.getElementById('myUsernameDisplay').innerText = myUser;
+                document.getElementById('myAvatarMini').innerText = myUser.charAt(0).toUpperCase();
+                
+                loadMessages();
+            }
+        }
+
+        // --- ЧАТ ---
+        function handleKey(e) { if(e.key === 'Enter') sendMessage(); }
+
+        function sendMessage() {
+            var input = document.getElementById('messageInput');
+            var text = input.value;
+            if(!text.trim()) return;
+
+            var time = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            chat.set({
+                user: myUser, text: text, time: time, createdAt: Date.now(), type: 'msg'
+            });
+            input.value = "";
+        }
+
+        function loadMessages() {
+            chat.map().once((data) => {
+                if(!data || !data.text) return;
+                
+                // Якщо це системний сигнал дзвінка - обробляємо окремо
+                if(data.type === 'call-signal') {
+                    handleIncomingCallSignal(data);
+                    return;
+                }
+                
+                // Відображення повідомлення
+                if(document.getElementById(data.createdAt)) return;
+                var list = document.getElementById('messagesList');
+                
+                var msgDiv = document.createElement('div');
+                msgDiv.className = 'message';
+                msgDiv.id = data.createdAt;
+                msgDiv.innerHTML = `
+                    <div class="msg-avatar">${data.user.charAt(0).toUpperCase()}</div>
+                    <div class="msg-content">
+                        <h4>${data.user} <span class="msg-timestamp">Сьогодні, ${data.time}</span></h4>
+                        <div class="msg-text">${data.text}</div>
+                    </div>`;
+                
+                list.appendChild(msgDiv);
+                list.scrollTop = list.scrollHeight;
+            });
+        }
+
+        // --- ГОЛОСОВИЙ ЗВ'ЯЗОК (LOGIC) ---
+        
+        // Коли клікаєш на канал в меню
+        function joinVoiceChannel(element, channelName) {
+            // Якщо вже підключені - спочатку виходимо
+            if(myStream) leaveVoice();
+
+            // В візуалку додаємо "Підключення..."
+            document.getElementById('voicePanel').style.display = 'block';
+            document.getElementById('currentVoiceName').innerText = channelName + " / Ukraine";
+            document.querySelector('.connection-status').innerText = "Connecting...";
+            document.querySelector('.connection-status').style.color = "#faa61a"; // Жовтий
+
+            navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+            .then(stream => {
+                myStream = stream;
+                peer = new Peer(); // Створюємо P2P ID
+
+                peer.on('open', (id) => {
+                    // Успішно підключились
+                    document.querySelector('.connection-status').innerText = "Voice Connected";
+                    document.querySelector('.connection-status').style.color = "#3ba55c"; // Зелений
+                    
+                    // Відображаємо себе в списку каналу
+                    addMyselfToChannelList(channelName);
+
+                    // Відправляємо сигнал в "ефір", що ми зайшли
+                    chat.set({
+                        user: myUser,
+                        text: id, // ID PeerJS
+                        channel: channelName,
+                        type: 'call-signal',
+                        createdAt: Date.now()
+                    });
+                });
+
+                peer.on('call', (call) => {
+                    call.answer(myStream);
+                    call.on('stream', playStream);
+                    activeCalls.push(call);
+                });
+
+            }).catch(err => {
+                alert("Потрібен доступ до мікрофону!");
+                document.getElementById('voicePanel').style.display = 'none';
+            });
+        }
+
+        function handleIncomingCallSignal(data) {
+            // data.text = PeerID того, хто зайшов
+            // data.channel = назва каналу
+            
+            // Якщо ми самі в цьому ж каналі і це не ми самі
+            if(myStream && document.getElementById('voicePanel').style.display !== 'none') {
+                var myCurrentChannel = document.getElementById('currentVoiceName').innerText.split(" / ")[0];
+                
+                if(data.channel === myCurrentChannel && data.user !== myUser) {
+                    // Потрібно перевірити, чи це свіжий сигнал (наприклад, не старше 10 секунд)
+                    if(Date.now() - data.createdAt < 10000) {
+                        console.log("Підключаю користувача " + data.user);
+                        var call = peer.call(data.text, myStream);
+                        call.on('stream', playStream);
+                        activeCalls.push(call);
+                        
+                        // Додати користувача в список візуально (спрощено)
+                        addOtherToChannelList(data.channel, data.user);
+                    }
+                }
+            }
+        }
+
+        function playStream(stream) {
+            var audio = document.createElement('audio');
+            audio.srcObject = stream;
+            audio.addEventListener('loadedmetadata', () => { audio.play(); });
+            document.getElementById('audioContainer').append(audio);
+        }
+
+        function leaveVoice() {
+            if(myStream) {
+                myStream.getTracks().forEach(track => track.stop());
+                myStream = null;
+            }
+            if(peer) {
+                peer.destroy();
+                peer = null;
+            }
+            activeCalls = [];
+            document.getElementById('audioContainer').innerHTML = ""; // Видалити всі звуки
+            
+            // Приховати панель
+            document.getElementById('voicePanel').style.display = 'none';
+            
+            // Видалити себе зі списків
+            document.querySelectorAll('.voice-user-list').forEach(el => el.innerHTML = '');
+        }
+
+        // Візуальні функції
+        function addMyselfToChannelList(channelName) {
+            var container = document.getElementById('voice-participants-' + channelName);
+            container.innerHTML = `
+                <div class="voice-user">
+                    <div class="voice-avatar">${myUser.charAt(0).toUpperCase()}</div>
+                    <div class="voice-username">${myUser}</div>
+                </div>
+            `;
+        }
+        
+        function addOtherToChannelList(channelName, userName) {
+             var container = document.getElementById('voice-participants-' + channelName);
+             // Проста перевірка щоб не дублювати
+             if(!container.innerHTML.includes(userName)) {
+                 container.innerHTML += `
+                    <div class="voice-user">
+                        <div class="voice-avatar" style="background-color:gray;">${userName.charAt(0).toUpperCase()}</div>
+                        <div class="voice-username">${userName}</div>
+                    </div>
+                `;
+             }
+        }
+
+    </script>
+</body>
+</html>
