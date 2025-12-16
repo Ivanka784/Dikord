@@ -2,11 +2,11 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <title>WEZZY | Private Server</title>
+    <title>WEZZY | Voice Chat v2</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        body { margin: 0; font-family: sans-serif; background-color: #36393f; color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #36393f; color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
         /* ЕКРАН ВХОДУ */
         #login-screen {
@@ -14,73 +14,103 @@
             background: #2f3136; display: flex; flex-direction: column; 
             align-items: center; justify-content: center; z-index: 10;
         }
-        .card { background: #202225; padding: 30px; border-radius: 10px; text-align: center; width: 300px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        .btn { width: 100%; padding: 15px; margin: 10px 0; border: none; border-radius: 5px; color: white; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .card { background: #202225; padding: 30px; border-radius: 10px; width: 320px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 10px; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 5px; color: white; font-weight: bold; cursor: pointer; font-size: 16px; transition: 0.2s; }
+        .btn:hover { opacity: 0.9; }
         .btn-create { background-color: #5865f2; }
         .btn-join { background-color: #3ba55c; }
-        input { width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #000; background: #40444b; color: white; box-sizing: border-box; }
+        .btn-back { background-color: #ed4245; }
+        
+        input, select { width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #202225; background: #40444b; color: white; box-sizing: border-box; outline: none; }
+        label { font-size: 12px; color: #b9bbbe; font-weight: bold; margin-bottom: -5px; display: block;}
 
-        /* ОСНОВНИЙ ІНТЕРФЕЙС */
+        /* ВІЗУАЛІЗАТОР МІКРОФОНУ (ТЕСТ) */
+        .mic-test-container {
+            background: #2f3136; height: 10px; border-radius: 5px; overflow: hidden; margin-top: 5px;
+        }
+        .mic-bar {
+            height: 100%; width: 0%; background: #3ba55c; transition: width 0.1s;
+        }
+
+        /* ГОЛОВНИЙ ЕКРАН */
         #app-screen { display: none; flex: 1; flex-direction: row; }
         
-        /* БІЧНА ПАНЕЛЬ */
-        .sidebar { width: 250px; background: #2f3136; padding: 20px; display: flex; flex-direction: column; }
-        .server-code-box { background: #202225; padding: 10px; border-radius: 5px; margin-bottom: 20px; word-break: break-all; }
-        .code-display { color: #faa61a; font-weight: bold; font-family: monospace; font-size: 18px; cursor: pointer; }
+        .sidebar { width: 260px; background: #2f3136; padding: 20px; display: flex; flex-direction: column; }
+        .server-code-box { background: #202225; padding: 10px; border-radius: 5px; margin-bottom: 20px; cursor: pointer; text-align: center; }
+        .code-display { color: #faa61a; font-weight: bold; font-family: monospace; font-size: 18px; word-break: break-all; }
         .status { font-size: 12px; color: gray; margin-bottom: 10px; }
-        .user-list { flex: 1; overflow-y: auto; }
-        .user-item { display: flex; align-items: center; margin-bottom: 5px; padding: 5px; background: #36393f; border-radius: 5px; }
-        .dot { width: 10px; height: 10px; background: #3ba55c; border-radius: 50%; margin-right: 10px; }
-
+        
+        .user-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; }
+        .user-item { display: flex; align-items: center; padding: 8px; background: #36393f; border-radius: 5px; border: 2px solid transparent; transition: border-color 0.1s; }
+        
+        /* ЕФЕКТ "ГОВОРИТЬ" */
+        .user-item.speaking {
+            border-color: #3ba55c; /* Зелена рамка */
+            background-color: #2f3136;
+        }
+        
+        .avatar { width: 32px; height: 32px; background: #5865f2; border-radius: 50%; margin-right: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; }
+        
         /* ЧАТ */
         .chat-area { flex: 1; display: flex; flex-direction: column; background: #36393f; }
         .messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-        .msg { background: #40444b; padding: 10px; border-radius: 8px; max-width: 80%; }
+        .msg { background: #40444b; padding: 10px; border-radius: 8px; max-width: 80%; word-break: break-word; }
         .msg.me { align-self: flex-end; background: #5865f2; }
-        .msg-input-area { padding: 20px; background: #2f3136; display: flex; }
-        .msg-input { flex: 1; padding: 10px; border-radius: 5px; border: none; background: #40444b; color: white; }
+        .msg-sender { font-size: 10px; color: #b9bbbe; margin-bottom: 2px; font-weight: bold; }
+        .msg-input-area { padding: 20px; background: #2f3136; }
     </style>
 </head>
 <body>
 
     <div id="login-screen">
-        <h1 style="color: #5865f2;">WEZZY DISCORD</h1>
-        <div class="card" id="step1">
-            <p>Як тебе звати?</p>
-            <input type="text" id="username" placeholder="Твій Нікнейм">
-            <button class="btn btn-create" onclick="createRoom()">Я АДМІН (Створити)</button>
-            <div style="margin: 10px 0;">--- АБО ---</div>
-            <button class="btn btn-join" onclick="showJoinInput()">Я УЧАСНИК (Ввійти)</button>
+        <h2 style="color: #5865f2; margin: 0 0 15px 0;">WEZZY VOICE</h2>
+        
+        <div class="card" id="step-settings">
+            <label>Твій Нікнейм</label>
+            <input type="text" id="username" placeholder="Введи ім'я...">
+
+            <label>Обери мікрофон</label>
+            <select id="micSelect" onchange="startMicTest()"></select>
+            
+            <label>Перевірка звуку</label>
+            <div class="mic-test-container">
+                <div class="mic-bar" id="micTestBar"></div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="btn btn-create" onclick="goToMode('create')">Створити</button>
+                <button class="btn btn-join" onclick="goToMode('join')">Ввійти</button>
+            </div>
         </div>
 
-        <div class="card" id="step2" style="display:none;">
-            <p>Введи код від Адміна:</p>
-            <input type="text" id="roomCodeInput" placeholder="Код підключення">
+        <div class="card" id="step-join" style="display:none;">
+            <label>Код сервера</label>
+            <input type="text" id="roomCodeInput" placeholder="Встав код від друга">
             <button class="btn btn-join" onclick="joinRoom()">ПІДКЛЮЧИТИСЯ</button>
-            <button class="btn" style="background:#ed4245" onclick="location.reload()">НАЗАД</button>
+            <button class="btn btn-back" onclick="goBack()">НАЗАД</button>
         </div>
     </div>
 
     <div id="app-screen">
         <div class="sidebar">
-            <div style="font-weight: bold; margin-bottom: 5px;">КОД СЕРВЕРА (Натисни):</div>
+            <label>КОД ЗАПРОШЕННЯ (Клік щоб скопіювати)</label>
             <div class="server-code-box" onclick="copyCode()">
                 <div class="code-display" id="myIdDisplay">...</div>
             </div>
             
             <div class="status" id="statusText">Очікування...</div>
-            <div style="font-weight: bold; margin-bottom: 10px;">КОРИСТУВАЧІ В ГОЛОСІ:</div>
-            <div class="user-list" id="userList">
-                </div>
-            <button class="btn" style="background:#ed4245; margin-top:10px;" onclick="location.reload()">Вийти</button>
+            <label>УЧАСНИКИ</label>
+            <div class="user-list" id="userList"></div>
+            
+            <button class="btn btn-back" style="margin-top: auto;" onclick="location.reload()">Відключитися</button>
         </div>
 
         <div class="chat-area">
             <div class="messages" id="messages">
-                <div class="msg">Вітаємо у чаті!</div>
+                <div style="text-align: center; color: gray; margin-top: 20px;">Чат кімнати</div>
             </div>
             <div class="msg-input-area">
-                <input type="text" class="msg-input" id="chatInput" placeholder="Написати повідомлення..." onkeypress="if(event.key==='Enter') sendChat()">
+                <input type="text" id="chatInput" placeholder="Повідомлення..." onkeypress="if(event.key==='Enter') sendChat()">
             </div>
         </div>
     </div>
@@ -88,164 +118,309 @@
     <div id="audio-container"></div>
 
     <script>
+        // --- ЗМІННІ ---
         let peer;
         let myStream;
         let myName;
-        let connections = []; // Список підключень (для адміна)
+        let myPeerId;
+        let connections = []; 
+        let audioContext;
+        let analyser;
+        let dataArray;
+        let micTestInterval;
 
-        // 1. СТВОРЕННЯ СЕРВЕРА (АДМІН)
-        function createRoom() {
-            myName = document.getElementById('username').value || "Admin";
-            startPeer(null); // null означає "дай мені випадковий ID"
+        // --- 1. НАЛАШТУВАННЯ МІКРОФОНУ (ПРИ ЗАПУСКУ) ---
+        
+        async function initDevices() {
+            // Просимо доступ, щоб отримати список пристроїв
+            try {
+                await navigator.mediaDevices.getUserMedia({ audio: true });
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const select = document.getElementById('micSelect');
+                select.innerHTML = '';
+                
+                devices.forEach(device => {
+                    if (device.kind === 'audioinput') {
+                        const option = document.createElement('option');
+                        option.value = device.deviceId;
+                        option.text = device.label || `Мікрофон ${select.length + 1}`;
+                        select.appendChild(option);
+                    }
+                });
+                startMicTest(); // Запуск тесту
+            } catch (err) {
+                alert("Будь ласка, дозвольте доступ до мікрофону для роботи сайту!");
+            }
+        }
+        
+        // Запуск ініціалізації при завантаженні сторінки
+        window.onload = initDevices;
+
+        // --- 2. ТЕСТ МІКРОФОНУ (ВІЗУАЛІЗАЦІЯ) ---
+        
+        async function startMicTest() {
+            if(micTestInterval) clearInterval(micTestInterval);
+            
+            const deviceId = document.getElementById('micSelect').value;
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: { deviceId: deviceId ? { exact: deviceId } : undefined } 
+                });
+                
+                // Налаштування аналізу звуку
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const analyserNode = audioCtx.createAnalyser();
+                const source = audioCtx.createMediaStreamSource(stream);
+                source.connect(analyserNode);
+                analyserNode.fftSize = 256;
+                const bufferLength = analyserNode.frequencyBinCount;
+                const dataArr = new Uint8Array(bufferLength);
+
+                // Анімація смужки
+                const bar = document.getElementById('micTestBar');
+                
+                micTestInterval = setInterval(() => {
+                    analyserNode.getByteFrequencyData(dataArr);
+                    let sum = 0;
+                    for(let i = 0; i < bufferLength; i++) sum += dataArr[i];
+                    let average = sum / bufferLength;
+                    // Збільшуємо чутливість для візуалізації
+                    let percent = Math.min(100, average * 2.5); 
+                    bar.style.width = percent + "%";
+                }, 100);
+
+            } catch (e) { console.log("Mic test error", e); }
         }
 
-        // 2. ВХІД ДО ІНШОГО (КЛІЄНТ)
-        function showJoinInput() {
-            myName = document.getElementById('username').value || "User";
-            document.getElementById('step1').style.display = 'none';
-            document.getElementById('step2').style.display = 'block';
+        // --- 3. НАВІГАЦІЯ ---
+        
+        function goToMode(mode) {
+            const name = document.getElementById('username').value;
+            if(!name) return alert("Введи ім'я!");
+            myName = name;
+
+            if (mode === 'create') {
+                startApp(null);
+            } else {
+                document.getElementById('step-settings').style.display = 'none';
+                document.getElementById('step-join').style.display = 'block';
+            }
+        }
+
+        function goBack() {
+            document.getElementById('step-join').style.display = 'none';
+            document.getElementById('step-settings').style.display = 'flex';
         }
 
         function joinRoom() {
             const code = document.getElementById('roomCodeInput').value;
-            if (!code) return alert("Введи код!");
-            startPeer(code);
+            if(!code) return alert("Введи код!");
+            startApp(code);
         }
 
-        // 3. ОСНОВНА ЛОГІКА
-        function startPeer(targetId) {
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('app-screen').style.display = 'flex';
-            document.getElementById('statusText').innerText = "Отримання доступу до мікрофону...";
+        // --- 4. ЗАПУСК ДОДАТКУ ---
 
-            // Спочатку беремо мікрофон
-            navigator.mediaDevices.getUserMedia({ audio: true })
-            .then(stream => {
-                myStream = stream;
-                document.getElementById('statusText').innerText = "Підключення до мережі...";
-                
-                // Створюємо Peer
-                peer = new Peer();
+        function startApp(targetId) {
+            // Зупиняємо тест мікрофону
+            if(micTestInterval) clearInterval(micTestInterval);
 
-                peer.on('open', (id) => {
-                    document.getElementById('myIdDisplay').innerText = id;
-                    document.getElementById('statusText').innerText = "Онлайн";
-                    addUserToUI(myName + " (Я)");
-
-                    // Якщо ми "Приєднуємось" (є targetId), то дзвонимо Адміну
-                    if (targetId) {
-                        connectToAdmin(targetId);
-                    }
-                });
-
-                // Коли хтось дзвонить НАМ
-                peer.on('call', (call) => {
-                    console.log("Вхідний дзвінок...");
-                    call.answer(myStream); // Відповідаємо
-                    
-                    call.on('stream', (remoteStream) => {
-                        playAudio(remoteStream);
-                        addUserToUI("Користувач (Голос)");
-                    });
-
-                    // Для чату (якщо ми Адмін, зберігаємо з'єднання)
-                    call.on('close', () => alert("Хтось вийшов"));
-                });
-
-                // Для текстового чату
-                peer.on('connection', (conn) => {
-                    setupDataConnection(conn);
-                });
-
-                peer.on('error', (err) => {
-                    alert("Помилка: " + err.type);
-                    document.getElementById('statusText').innerText = "Помилка з'єднання";
-                });
-
-            })
-            .catch(err => {
-                alert("Немає мікрофона! " + err);
-                location.reload();
-            });
-        }
-
-        // 4. ПІДКЛЮЧЕННЯ ДО АДМІНА
-        function connectToAdmin(adminId) {
-            document.getElementById('statusText').innerText = "Дзвонимо адміну...";
+            // Отримуємо фінальний стрім з обраного пристрою
+            const deviceId = document.getElementById('micSelect').value;
             
-            // Дзвінок (Аудіо)
-            const call = peer.call(adminId, myStream);
-            call.on('stream', (adminStream) => {
-                playAudio(adminStream);
-                document.getElementById('statusText').innerText = "Підключено до Адміна!";
-                addUserToUI("АДМІН");
-            });
+            navigator.mediaDevices.getUserMedia({ 
+                audio: { deviceId: deviceId ? { exact: deviceId } : undefined } 
+            }).then(stream => {
+                myStream = stream;
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('app-screen').style.display = 'flex';
+                
+                setupPeer(targetId); // Запуск PeerJS
+                
+                // Додаємо себе в інтерфейс
+                addParticipantToUI('local-user', myName, true);
+                // Запуск аналізу свого голосу для індикації
+                monitorAudioActivity(myStream, 'local-user');
 
-            // Чат (Дані)
-            const conn = peer.connect(adminId);
-            conn.on('open', () => {
-                conn.send({ type: 'name', name: myName }); // Представляємось
-                connections.push(conn);
+            }).catch(err => {
+                alert("Помилка доступу до мікрофону: " + err);
             });
-            setupDataConnection(conn);
         }
 
-        // 5. ОБРОБКА ЧАТУ
-        function setupDataConnection(conn) {
-            conn.on('data', (data) => {
-                if(data.type === 'chat') {
-                    addMessage(data.sender, data.msg, false);
-                }
-                if(data.type === 'name') {
-                    addUserToUI(data.name); // Показати ім'я в списку
+        // --- 5. ЛОГІКА PEERJS (ЗВ'ЯЗОК) ---
+
+        function setupPeer(targetId) {
+            document.getElementById('statusText').innerText = "З'єднання з сервером...";
+            
+            peer = new Peer();
+
+            peer.on('open', (id) => {
+                myPeerId = id;
+                document.getElementById('myIdDisplay').innerText = id;
+                document.getElementById('statusText').innerText = "Онлайн (Голосовий активний)";
+                
+                if (targetId) {
+                    connectToPeer(targetId);
                 }
             });
+
+            // Вхідний дзвінок (Голос)
+            peer.on('call', (call) => {
+                call.answer(myStream);
+                
+                // Очікуємо метадані (ім'я) через DataConnection, 
+                // але для простоти створимо тимчасовий ID
+                const remoteUserId = call.peer; 
+
+                call.on('stream', (remoteStream) => {
+                    playAudio(remoteStream, remoteUserId);
+                });
+            });
+
+            // Вхідні дані (Чат + Імена)
+            peer.on('connection', (conn) => {
+                handleDataConnection(conn);
+            });
+
+            peer.on('error', err => alert("Помилка з'єднання: " + err.type));
+        }
+
+        function connectToPeer(id) {
+            // 1. Дзвінок
+            const call = peer.call(id, myStream);
+            call.on('stream', (remoteStream) => {
+                playAudio(remoteStream, id);
+            });
+
+            // 2. Дані (щоб передати ім'я)
+            const conn = peer.connect(id);
+            conn.on('open', () => {
+                conn.send({ type: 'join', name: myName });
+            });
+            handleDataConnection(conn);
+        }
+
+        // --- 6. ОБРОБКА ДАНИХ ТА ЧАТУ ---
+
+        function handleDataConnection(conn) {
             connections.push(conn);
+
+            conn.on('data', (data) => {
+                // Новий користувач представився
+                if(data.type === 'join') {
+                    addParticipantToUI(conn.peer, data.name, false);
+                    addMessage("System", `${data.name} приєднався`, false);
+                    
+                    // Відправляємо йому своє ім'я у відповідь
+                    conn.send({ type: 'welcome', name: myName });
+                    
+                    // Якщо ми Адмін, треба передати йому список інших (спрощено: просто всі обмінюються)
+                }
+                
+                if(data.type === 'welcome') {
+                    addParticipantToUI(conn.peer, data.name, false);
+                }
+
+                if(data.type === 'chat') {
+                    addMessage(data.sender, data.text, false);
+                }
+            });
         }
 
         function sendChat() {
             const input = document.getElementById('chatInput');
-            const msg = input.value;
-            if(!msg) return;
+            const text = input.value;
+            if(!text) return;
 
-            addMessage(myName, msg, true); // Собі
-
-            // Всім іншим
-            connections.forEach(conn => {
-                conn.send({ type: 'chat', sender: myName, msg: msg });
-            });
+            addMessage("Я", text, true);
+            connections.forEach(conn => conn.send({ type: 'chat', sender: myName, text: text }));
             input.value = "";
         }
 
-        // 6. ДОПОМІЖНІ ФУНКЦІЇ
-        function playAudio(stream) {
+        // --- 7. АУДІО ТА ІНДИКАТОР ГУЧНОСТІ (СЕРЦЕ СИСТЕМИ) ---
+
+        function playAudio(stream, userId) {
+            // Перевірка чи вже є аудіо для цього юзера
+            if(document.getElementById(`audio-${userId}`)) return;
+
             const audio = document.createElement('audio');
+            audio.id = `audio-${userId}`;
             audio.srcObject = stream;
             audio.autoplay = true;
             document.getElementById('audio-container').appendChild(audio);
+
+            // Включаємо моніторинг для підсвітки рамки
+            monitorAudioActivity(stream, userId);
         }
 
-        function addMessage(sender, text, isMe) {
-            const div = document.createElement('div');
-            div.className = "msg " + (isMe ? "me" : "");
-            div.innerHTML = `<b>${sender}:</b> ${text}`;
-            document.getElementById('messages').appendChild(div);
-            // Скрол вниз
-            document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+        function monitorAudioActivity(stream, userId) {
+            // Створюємо окремий AudioContext для аналізу
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const analyser = audioCtx.createAnalyser();
+            const source = audioCtx.createMediaStreamSource(stream);
+            source.connect(analyser);
+            
+            analyser.fftSize = 512;
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            
+            const uiElement = document.getElementById(`user-div-${userId}`);
+
+            function checkVolume() {
+                analyser.getByteFrequencyData(dataArray);
+                let sum = 0;
+                for(let i = 0; i < bufferLength; i++) sum += dataArray[i];
+                let average = sum / bufferLength;
+
+                // Поріг чутливості (можна змінити 10 на інше число)
+                if (average > 10) {
+                    if(uiElement) uiElement.classList.add('speaking');
+                } else {
+                    if(uiElement) uiElement.classList.remove('speaking');
+                }
+                requestAnimationFrame(checkVolume);
+            }
+            checkVolume();
         }
 
-        function addUserToUI(name) {
+        // --- 8. UI ФУНКЦІЇ ---
+
+        function addParticipantToUI(userId, name, isMe) {
+            // Якщо вже є - не додаємо
+            if(document.getElementById(`user-div-${userId}`)) return;
+
             const list = document.getElementById('userList');
             const div = document.createElement('div');
             div.className = 'user-item';
-            div.innerHTML = `<div class="dot"></div> ${name}`;
+            div.id = `user-div-${userId}`; // ID для пошуку при аналізі звуку
+            
+            const initial = name.charAt(0).toUpperCase();
+            
+            div.innerHTML = `
+                <div class="avatar">${initial}</div>
+                <div>
+                    <div style="font-weight:bold; font-size:14px;">${name} ${isMe ? '(Ти)' : ''}</div>
+                    <div style="font-size:11px; color:#b9bbbe;">Connected</div>
+                </div>
+            `;
             list.appendChild(div);
+        }
+
+        function addMessage(sender, text, isMe) {
+            const list = document.getElementById('messages');
+            const div = document.createElement('div');
+            div.className = `msg ${isMe ? 'me' : ''}`;
+            div.innerHTML = `
+                <div class="msg-sender">${sender}</div>
+                ${text}
+            `;
+            list.appendChild(div);
+            list.scrollTop = list.scrollHeight;
         }
 
         function copyCode() {
             const code = document.getElementById('myIdDisplay').innerText;
             navigator.clipboard.writeText(code);
-            alert("Код скопійовано! Надішли його другу.");
+            alert("Код скопійовано!");
         }
     </script>
 </body>
